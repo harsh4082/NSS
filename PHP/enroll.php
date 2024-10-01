@@ -1,0 +1,290 @@
+<?php
+$fnameErr = $snameErr = $yojErr = $classErr = $yearErr = $roll_numErr = $emailErr = $genderErr = $usernameErr = $passwordErr = $cpasswordErr = "";
+include '../../NSS_NEW/partial/_dbconnector.php';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $fname = $_POST["fname"];
+    $sname = $_POST["sname"];
+    $yoj = $_POST["yoj"];
+    $class = $_POST["class"];
+    $year = $_POST["year"];
+    $roll_num = $_POST["roll_num"];
+    $email = $_POST["email"];
+    $gender = $_POST["gender"];
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+    $cpassword = $_POST["cpassword"];
+    $selection = "Not Selected";
+    
+    // Password requirements validation
+    if (
+        strlen($password) < 8 ||
+        !preg_match("/[0-9]+/", $password) ||
+        !preg_match("/[!@#$%^&*()\-_=+{};:,<.>]+/", $password) ||
+        !preg_match("/[A-Z]+/", $password)
+        ) {
+            $passwordErr = "Password does not meet requirements.";
+        } elseif ($password !== $cpassword) {
+            $cpasswordErr = "Passwords do not match.";
+        } else {
+            // Fetch the last index number from the Student table
+            $getLastIdSql = "SELECT MAX(id) as lastId FROM `Student`";
+            $resultLastId = mysqli_query($conn, $getLastIdSql);
+            $row = mysqli_fetch_assoc($resultLastId);
+            $lastId = $row['lastId'];
+            
+            // Increment the last index number for the new student
+            $newId = $lastId + 1;
+            
+            // Create the student ID in the required format
+            $yoj2 = str_replace("-", "", $yoj);
+            $indexNumber = str_pad($newId, 4, "0", STR_PAD_LEFT); // Ensure index number has 4 digits
+            $studentId = "NMBY" . $yoj2 . $indexNumber;
+            
+        $existSql = "SELECT * FROM `Student` WHERE username = '$username'";
+        $result = mysqli_query($conn, $existSql);
+        $numExistRows = mysqli_num_rows($result);
+
+        if ($numExistRows > 0) {
+            $usernameErr = "Username Already Exists";
+        } else {
+            $sql = "INSERT INTO `Student` (`id`, `fname`, `sname`, `yoj`, `class`,`roll_num`, `year`, `email`, `gender`, `username`, `password`, `hours`, `student_id`, `Selection`,`Image`)
+        VALUES ('$newId', '$fname', '$sname', '$yoj', '$class','$roll_num', '$year', '$email', '$gender', '$username', '$password', '0', '$studentId', '$selection','NSSnew.gif');";
+            $result = mysqli_query($conn, $sql);
+
+            if ($result) {
+                $success = true;
+            } else {
+                $error = "Error: Something went wrong while inserting into the database.";
+            }
+        }
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrollment Form</title>
+    <link rel="stylesheet" href="../CSS/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .container {
+            margin-top: 80px;
+            width: 60%;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-label {
+            font-weight: bold;
+        }
+
+        .form-control,
+        .form-select {
+            height: 40px;
+        }
+
+        .btn-submit {
+            display: block;
+            margin: 20px auto;
+        }
+
+        /* Loader CSS */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #3498db;
+            width: 50px;
+            height: 50px;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            margin-top: -25px;
+            margin-left: -25px;
+            z-index: 1000;
+            display: none;
+        }
+
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-card {
+            display: none;
+        }
+    </style>
+</head>
+<body id="body">
+    <?php include '../../NSS_NEW/partial/_header.php'; ?>
+    <div class="container" style="width: 700px; margin-bottom: 60px;">
+        <div class="card">
+            <h1 class="card-header text-center">Enrollment Form</h1>
+            <div class="card-body">
+                <?php if(isset($success) && $success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    Congratulations, you are successfully enrolled!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
+                <?php if(isset($error) && $error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error:</strong> <?php echo $error; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
+                <form action="/NSS_NEW/PHP/enroll.php" method="post">
+                    <div class="mb-3">
+                        <label for="Fname" class="form-label">First name</label>
+                        <input type="text" class="form-control" name="fname" id="Fname"  required>
+                        <span class="text-danger"><?php echo $fnameErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Sname" class="form-label">Surname</label>
+                        <input type="text" class="form-control" name="sname" id="Sname" required>
+                        <span class="text-danger"><?php echo $snameErr; ?></span>
+                    </div>
+                     <div class="mb-3">
+                        <label for="yoj" class="form-label">Year of joining</label>
+                        <select class="form-select" id="yoj" name="yoj" required>
+                            <option selected>Select year</option>
+                            <option>23-24</option>
+                        </select>
+                        <span class="text-danger"><?php echo $yojErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dept" class="form-label">Class</label>
+                        <select class="form-select" id="dept" name="class" required>
+                            <option selected>Select class</option>
+                            <option>B.COM</option>
+                            <option>BA</option>
+                            <option>B.SC</option>
+                            <option>BMS</option>
+                            <option>BAMMC</option>
+                            <option>B.SC.CS</option>
+                            <option>B.SC.IT</option>
+                            <option>B.SC.Biotechnology</option>
+                            <option>BBI</option>
+                            <option>BAF</option>
+                            <option>BBA</option>
+                            <option>B.SC.DSDA</option>
+                            <option>B.COM E-Commerce</option>
+                            <option>B.COM Finance</option>
+                        </select>
+                        <span class="text-danger"><?php echo $classErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">YEAR</label>
+                        <select class="form-select" id="year" name="year" required>
+                            <option selected>Select year</option>
+                            <option>FY</option>
+                            <option>SY</option>
+                            <option>TY</option>
+                        </select>
+                        <span class="text-danger"><?php echo $yearErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="roll_num" class="form-label">Roll Number</label>
+                        <input type="text" class="form-control" name="roll_num" id="roll_num" required>
+                        <span class="text-danger"><?php echo $roll_numErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Email" class="form-label">Email ID<span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" name="email" id="Email" required>
+                        <span class="text-danger"><?php echo $emailErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="geneder" class="form-label">Gender</label>
+                        <select class="form-select" id="geneder" name="gender" required>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                        <span class="text-danger"><?php echo $genderErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="username" class="form-control" id="username" name="username" required>
+                        <span class="text-danger"><?php echo $usernameErr; ?></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye" id="passwordIcon"></i>
+                            </button>
+                        </div>
+                        <p class="small">Minimum 8 characters required (1 uppercase, 1 special character, 1 numeric)</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cpassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="cpassword" name="cpassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-submit align-center">Submit</button>
+                    <p class="mt-3 text-center" style="color: black;">If you are already enrolled, <a href="/NSS_NEW/PHP/login.php">click here to log in.</a></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Card -->
+    <div class="container success-card" style="width: 700px; margin-bottom: 60px;">
+        <div class="card">
+            <h1 class="card-header text-center">Congratulations, you are successfully enrolled!</h1>
+            <div class="card-body">
+                <p class="text-center">Your enrollment details have been successfully submitted.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="loader"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://kit.fontawesome.com/d304e9faef.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#togglePassword').click(function () {
+                var passwordInput = $('#password');
+                var passwordIcon = $('#passwordIcon');
+
+                if (passwordInput.attr('type') === 'password') {
+                    passwordInput.attr('type', 'text');
+                    passwordIcon.removeClass('fa-eye');
+                    passwordIcon.addClass('fa-eye-slash');
+                } else {
+                    passwordInput.attr('type', 'password');
+                    passwordIcon.removeClass('fa-eye-slash');
+                    passwordIcon.addClass('fa-eye');
+                }
+            });
+
+            // Loader display after form submission
+            $('form').submit(function () {
+                $('#loader').show(); // Show loader
+                $('.container').hide(); // Hide form
+            });
+        });    
+    </script>
+</body>
+</html>
